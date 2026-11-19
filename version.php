@@ -15,7 +15,7 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Atto text editor integration version file.
+ * Version details.
  *
  * @package    atto_annoto
  * @copyright  Annoto Ltd.
@@ -24,6 +24,12 @@
 
 defined('MOODLE_INTERNAL') || die();
 
-$plugin->version   = 2018081500;        // The current plugin version (Date: YYYYMMDDXX).
-$plugin->requires  = 2016120500;        // Requires this Moodle version 3.2.
-$plugin->component = 'atto_annoto';  // Full name of the plugin (used for diagnostics).
+$plugin->version   = 2026111900;        // The current plugin version (Date: YYYYMMDDXX).
+$plugin->release   = '2.0.0';
+$plugin->requires  = 2021051700;        // Moodle 3.11.
+$plugin->supported = [311, 502];        // Atto is core up to 4.5; on 5.x it needs editor_atto from the plugins directory.
+$plugin->maturity  = MATURITY_BETA;
+$plugin->component = 'atto_annoto';
+$plugin->dependencies = [
+    'local_annoto' => 2026111900,
+];

@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -16,20 +15,42 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Lib with callbacks of annoto plugin for atto editor
+ * Atto "Embed Annoto Media" button: callbacks.
  *
  * @package    atto_annoto
  * @copyright  Annoto Ltd.
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
+/**
+ * Strings used by the YUI module.
+ */
+function atto_annoto_strings_for_js() {
+    global $PAGE;
+    $PAGE->requires->strings_for_js(['buttontitle'], 'atto_annoto');
+}
 
 /**
- * Return the js params required for this module.
- * @return array of additional params to pass to javascript init function for this module.
+ * Parameters for the YUI module.
+ *
+ * @param string $elementid
+ * @param array $options Editor options (context)
+ * @param array $fpoptions File picker options
+ * @return array
  */
-function atto_annoto_params_for_js() {
-    $defaultmode = get_config('atto_annoto', 'default_mode');
-    return array('defaultmode' => $defaultmode);
+function atto_annoto_params_for_js($elementid, $options, $fpoptions) {
+    $context = $options['context'] ?? null;
+    if (!$context) {
+        $context = \context_system::instance();
+    }
+    $enabled = false;
+    if (class_exists('\local_annoto\embed\helper')) {
+        $enabled = has_capability('atto/annoto:use', $context)
+            && \local_annoto\embed\helper::can_embed($context)
+            && \local_annoto\embed\helper::is_configured();
+    }
+    return [
+        'enabled' => $enabled,
+        'contextid' => $context->id,
+    ];
 }

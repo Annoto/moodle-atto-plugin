@@ -17,7 +17,7 @@ YUI.add('moodle-atto_annoto-button', function (Y, NAME) {
 
 /*
  * @package    atto_annoto
- * @copyright  Devlion  
+ * @copyright  Annoto Ltd.
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
@@ -26,95 +26,158 @@ YUI.add('moodle-atto_annoto-button', function (Y, NAME) {
  */
 
 /**
- * Atto text editor annoto plugin.
+ * Atto "Embed Annoto Media" button.
+ *
+ * Opens local/annoto/embed/select.php (LTI 1.3 Deep Linking with Annoto) in a dialogue iframe and
+ * inserts the placeholder link that local/annoto/embed/return.php posts back. filter_annoto renders it.
  *
  * @namespace M.atto_annoto
  * @class button
  * @extends M.editor_atto.EditorPlugin
  */
 
+var COMPONENTNAME = 'atto_annoto',
+    IFRAME_ALLOW = 'camera *; microphone *; display-capture *; autoplay *; fullscreen *; clipboard-write *';
+
 Y.namespace('M.atto_annoto').Button = Y.Base.create('button', Y.M.editor_atto.EditorPlugin, [], {
-    initializer: function(btn) {
-            
-            var button = this.addButton({
+
+    /**
+     * The selection saved when the dialogue opened.
+     *
+     * @property _currentSelection
+     * @type Range[]
+     * @private
+     */
+    _currentSelection: null,
+
+    /**
+     * The window message handler while the dialogue is open.
+     *
+     * @property _messageHandler
+     * @type Function
+     * @private
+     */
+    _messageHandler: null,
+
+    initializer: function() {
+        if (!this.get('enabled')) {
+            return;
+        }
+        this.addButton({
             icon: 'icon',
-            iconComponent: 'atto_annoto',
+            iconComponent: COMPONENTNAME,
             buttonName: 'annoto',
-            callback: this._toggleAnnoto
+            title: 'buttontitle',
+            callback: this._openPicker
         });
-
-        this.get('host').on('pluginsloaded', function(e) {
-            if (btn.defaultmode == 'on') {
-                this._setAnnotoOn();
-            } else if (btn.defaultmode == 'off') {
-                this._setAnnotoOff();
-            } else {
-                this._setAnnoto(); // default value
-            }
-        }, this, button);
-
     },
 
     /**
-     * toggle Annoto annoto
+     * Open the Annoto picker in a dialogue.
      *
-     * @method _toggleAnnoto
+     * @method _openPicker
      * @private
      */
-    _toggleAnnoto: function() {
-        var checkTag = Y.all('annoto');
-        if (checkTag.size() > 0) {
-            checkTag.remove();
-            this.unHighlightButtons('annoto');
-            this.markUpdated();
-        } else {
-            var checkDisTag = Y.all('annotodisable');
-            if (checkDisTag.size() > 0) {
-                checkDisTag.remove();
-            }    
-            var annotoTag = Y.Node.create('<annoto />');
-            annotoTag.appendTo(this.editor);
-            this.highlightButtons('annoto');
-            this.markUpdated();
-        } 
+    _openPicker: function() {
+        var host = this.get('host'),
+            url = M.cfg.wwwroot + '/local/annoto/embed/select.php?contextid=' +
+                encodeURIComponent(this.get('contextid')),
+            dialogue,
+            iframe;
+
+        this._currentSelection = host.getSelection();
+
+        dialogue = this.getDialogue({
+            headerContent: M.util.get_string('buttontitle', COMPONENTNAME),
+            width: '1100px',
+            focusAfterHide: true
+        });
+
+        iframe = Y.Node.create('<iframe></iframe>');
+        iframe.setAttrs({
+            src: url,
+            allow: IFRAME_ALLOW,
+            allowfullscreen: 'true',
+            title: M.util.get_string('buttontitle', COMPONENTNAME)
+        });
+        iframe.setStyles({width: '100%', height: '70vh', border: '0'});
+
+        dialogue.set('bodyContent', iframe);
+        dialogue.after('visibleChange', function(e) {
+            if (!e.newVal) {
+                this._stopListening();
+                dialogue.set('bodyContent', '');
+            }
+        }, this);
+
+        this._stopListening();
+        this._messageHandler = Y.bind(function(event) {
+            var data = event.data;
+            if (event.origin !== window.location.origin || !data || data.source !== 'local_annoto_embed' ||
+                    !iframe.getDOMNode() || event.source !== iframe.getDOMNode().contentWindow) {
+                return;
+            }
+            if (data.action === 'insert' && typeof data.html === 'string') {
+                this._insert(data.html);
+            }
+            dialogue.hide();
+        }, this);
+        window.addEventListener('message', this._messageHandler);
+
+        dialogue.show();
     },
 
-    _setAnnoto: function () {
-        var checkTag = Y.all('annoto');
-        if (checkTag.size() > 0) {
-            this.highlightButtons('annoto');
-            this.markUpdated();
+    /**
+     * Insert the placeholder HTML at the saved selection.
+     *
+     * @method _insert
+     * @param {String} html
+     * @private
+     */
+    _insert: function(html) {
+        var host = this.get('host');
+        this.editor.focus();
+        if (this._currentSelection) {
+            host.setSelection(this._currentSelection);
         }
+        host.insertContentAtFocusPoint(html + '&nbsp;');
+        this.markUpdated();
     },
 
-    _setAnnotoOn: function () {
-        var checkDisTag = Y.all('annotodisable');
-        if (checkDisTag.size() > 0) {
-            checkDisTag.remove();
-        }
-        var checkTag = Y.all('annoto');
-        if (checkTag.size() <= 1) {
-            var annotoTag = Y.Node.create('<annoto />');
-            annotoTag.appendTo(this.editor);
-            this.highlightButtons('annoto');
-            this.markUpdated();
-        }
-    },
-
-    _setAnnotoOff: function () {
-        var checkTag = Y.all('annoto');
-        if (checkTag.size() > 0) {
-            checkTag.remove();
-            this.unHighlightButtons('annoto');
-        }
-        var checkDisTag = Y.all('annotodisable');
-        if (checkDisTag.size() <= 1) {
-            var annotoDisTag = Y.Node.create('<annotodisable />');
-            annotoDisTag.appendTo(this.editor);
-            this.markUpdated();
+    /**
+     * Remove the window message handler.
+     *
+     * @method _stopListening
+     * @private
+     */
+    _stopListening: function() {
+        if (this._messageHandler) {
+            window.removeEventListener('message', this._messageHandler);
+            this._messageHandler = null;
         }
     }
+}, {
+    ATTRS: {
+        /**
+         * Whether the user may use the button here (capabilities and a configured embed tool).
+         *
+         * @attribute enabled
+         * @type Boolean
+         */
+        enabled: {
+            value: false
+        },
 
+        /**
+         * Context id of the editor.
+         *
+         * @attribute contextid
+         * @type Number
+         */
+        contextid: {
+            value: null
+        }
+    }
 });
 
 
