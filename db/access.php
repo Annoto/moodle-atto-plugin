@@ -1,5 +1,4 @@
 <?php
-
 // This file is part of Moodle - http://moodle.org/
 //
 // Moodle is free software: you can redistribute it and/or modify
@@ -16,20 +15,24 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Settings of annoto plugin for atto editor
+ * Capabilities for atto_annoto.
  *
  * @package    atto_annoto
  * @copyright  Annoto Ltd.
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
-defined('MOODLE_INTERNAL') || die;
+defined('MOODLE_INTERNAL') || die();
 
-    // Default atto_annoto mode
-    $defaultmode         = get_string('default_mode','atto_annoto');
-    $defaultmodedescr    = get_string('default_mode_descr', 'atto_annoto');
-    $defaultmodeselect   = array( 'none' => get_string('default_mode_none','atto_annoto'),
-                                'on' => get_string('default_mode_on','atto_annoto'),
-                                'off' => get_string('default_mode_off','atto_annoto')
-                           );
-    $settings->add(new admin_setting_configselect('atto_annoto/default_mode', $defaultmode, $defaultmodedescr, 'none', $defaultmodeselect));
+$capabilities = [
+    // Show the Annoto button in Atto. Opening the picker also needs local/annoto:embedmedia.
+    'atto/annoto:use' => [
+        'captype' => 'read',
+        'contextlevel' => CONTEXT_COURSE,
+        'archetypes' => [
+            'editingteacher' => CAP_ALLOW,
+            'manager' => CAP_ALLOW,
+            'coursecreator' => CAP_ALLOW,
+        ],
+    ],
+];

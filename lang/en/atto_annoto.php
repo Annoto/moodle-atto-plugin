@@ -15,16 +15,14 @@
 // along with Moodle.  If not, see <http://www.gnu.org/licenses/>.
 
 /**
- * Strings for component 'atto_bold', language 'en'.
+ * Strings for atto_annoto, language 'en'.
  *
  * @package    atto_annoto
- * @copyright  Davidson
+ * @copyright  Annoto Ltd.
  * @license    http://www.gnu.org/copyleft/gpl.html GNU GPL v3 or later
  */
 
+$string['annoto:use'] = 'Use the Annoto button in the Atto editor';
+$string['buttontitle'] = 'Embed Annoto Media';
 $string['pluginname'] = 'Annoto';
-$string['default_mode'] = 'Default mode';
-$string['default_mode_descr'] = 'Choose default plugin mode';
-$string['default_mode_none'] = 'None';
-$string['default_mode_on'] = 'On';
-$string['default_mode_off'] = 'Off';
+$string['privacy:metadata'] = 'The Annoto Atto plugin does not store any personal data. The picker is opened through local_annoto, which declares the data it sends to Annoto.';
